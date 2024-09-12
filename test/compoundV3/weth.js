@@ -7,9 +7,8 @@ const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 
 const Strategy = artifacts.require("CompoundStrategyMainnet_WETH");
-const IFeeRewardForwarder = artifacts.require("IFeeRewardForwarderV6");
 
-//This test was developed at blockNumber 18056250
+//This test was developed at blockNumber 19476475
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
 describe("Mainnet CompoundV3 WETH", function() {
@@ -22,10 +21,6 @@ describe("Mainnet CompoundV3 WETH", function() {
   let underlyingWhale = "0xc765faECA19B33483f2A105e7B02e309393A45B0";
   let weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
   let comp = "0xc00e94Cb662C3520282E6f5717214004A7f26888";
-  let hodlVault = "0xF49440C1F012d041802b25A73e5B0B9166a75c02";
-  let feeForwarderAddr = "0x153C544f72329c1ba521DDf5086cf2fA98C86676";
-  let sushiDex = "0xcb2d20206d906069351c89a2cb7cdbd96c71998717cd5a82e724d955b654f67a";
-  let bancorDex = "0x4bf11b89310db45ea1467e48e832606a6ec7b8735c470fff7cf328e182a7c37e";
 
   // parties in the protocol
   let governance;
@@ -66,17 +61,14 @@ describe("Mainnet CompoundV3 WETH", function() {
 
     await setupExternalContracts();
     [controller, vault, strategy] = await setupCoreProtocol({
+      "existingVaultAddress": "0xFE09e53A81Fe2808bc493ea64319109B5bAa573e",
+      "announceStrategy": true,
       "strategyArtifact": Strategy,
       "strategyArtifactIsUpgradable": true,
       "underlying": underlying,
       "governance": governance,
-      "liquidation": [{"sushi": [comp, weth]}],
+      "liquidation": [{"uniV3": [weth, comp]}],
     });
-
-    let feeForwarder = await IFeeRewardForwarder.at(feeForwarderAddr);
-    let path = [comp, weth, addresses.FARM];
-    let dexes = [sushiDex, bancorDex];
-    await feeForwarder.configureLiquidation(path, dexes, { from: governance });
 
     // whale send underlying to farmers
     await setupBalance();
@@ -86,9 +78,7 @@ describe("Mainnet CompoundV3 WETH", function() {
     it("Farmer should earn money", async function() {
       let farmerOldBalance = new BigNumber(await underlying.balanceOf(farmer1));
       await depositVault(farmer1, underlying, vault, farmerBalance);
-      let fTokenBalance = await vault.balanceOf(farmer1);
-      let compToken = await IERC20.at(comp);
-      let hodlOldBalance = new BigNumber(await compToken.balanceOf(hodlVault));
+      let fTokenBalance = new BigNumber(await vault.balanceOf(farmer1));
 
       // Using half days is to simulate how we doHardwork in the real world
       let hours = 10;
@@ -111,17 +101,14 @@ describe("Mainnet CompoundV3 WETH", function() {
 
         console.log("instant APR:", apr*100, "%");
         console.log("instant APY:", (apy-1)*100, "%");
-
+        await vault.withdraw(fTokenBalance.div(10), { from: farmer1 });
+        await depositVault(farmer1, underlying, vault, new BigNumber(await underlying.balanceOf(farmer1)))
         await Utils.advanceNBlock(blocksPerHour);
       }
+      fTokenBalance = new BigNumber(await vault.balanceOf(farmer1));
       await vault.withdraw(fTokenBalance, { from: farmer1 });
       let farmerNewBalance = new BigNumber(await underlying.balanceOf(farmer1));
       Utils.assertBNGt(farmerNewBalance, farmerOldBalance);
-
-      let hodlNewBalance = new BigNumber(await compToken.balanceOf(hodlVault));
-      console.log("comp before", hodlOldBalance.toFixed());
-      console.log("comp after ", hodlNewBalance.toFixed());
-      Utils.assertBNGt(hodlNewBalance, hodlOldBalance);
 
       apr = (farmerNewBalance.toFixed()/farmerOldBalance.toFixed()-1)*(24/(blocksPerHour*hours/300))*365;
       apy = ((farmerNewBalance.toFixed()/farmerOldBalance.toFixed()-1)*(24/(blocksPerHour*hours/300))+1)**365;

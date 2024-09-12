@@ -1,4 +1,5 @@
-pragma solidity 0.5.16;
+//SPDX-License-Identifier: Unlicense
+pragma solidity 0.8.26;
 
 import "./Storage.sol";
 
@@ -6,7 +7,7 @@ contract Governable {
 
   Storage public store;
 
-  constructor(address _store) public {
+  constructor(address _store) {
     require(_store != address(0), "new storage shouldn't be empty");
     store = Storage(_store);
   }

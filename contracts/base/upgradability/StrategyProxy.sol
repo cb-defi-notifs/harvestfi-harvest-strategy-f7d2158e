@@ -1,11 +1,12 @@
-pragma solidity 0.5.16;
+//SPDX-License-Identifier: Unlicense
+pragma solidity 0.8.26;
 
-import "../inheritance/IUpgradeSource.sol";
-import "@openzeppelin/upgrades/contracts/upgradeability/BaseUpgradeabilityProxy.sol";
+import "../interface/IUpgradeSource.sol";
+import "./BaseUpgradeabilityProxy.sol";
 
 contract StrategyProxy is BaseUpgradeabilityProxy {
 
-  constructor(address _implementation) public {
+  constructor(address _implementation) {
     _setImplementation(_implementation);
   }
 

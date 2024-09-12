@@ -1,10 +1,11 @@
-pragma solidity 0.5.16;
+// SPDX-License-Identifier: Unlicense
+pragma solidity 0.8.26;
 
-import "@openzeppelin/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interface/IStrategyFactory.sol";
 import "./interface/IVaultFactory.sol";
-import "./interface/IPoolFactory.sol";
 import "./interface/IUniV3VaultFactory.sol";
+import "./interface/IPoolFactory.sol";
 
 import "../interface/IVault.sol";
 import "../inheritance/Governable.sol";
@@ -62,7 +63,7 @@ contract MegaFactory is Ownable {
     emit DeploymentCompleted(id);
   }
 
-  constructor(address _storage, address _multisig) public {
+  constructor(address _storage, address _multisig) {
     multisig = _multisig;
     actualStorage = _storage;
     setAuthorization(owner(), true);
